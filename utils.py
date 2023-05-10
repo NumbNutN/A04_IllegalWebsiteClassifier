@@ -17,10 +17,12 @@ def build_dataset(config):
                 if not lin:
                     continue
                 content, label = lin.split('\t')
-                if label != '1' and label != '0':
-                    continue
+                # if label != '1' and label != '0':
+                #     continue
                 # print(content)
+                # added 2023-5-10
                 token = config.tokenizer.tokenize(content)
+                #token = content.split()
                 token = [CLS] + token
                 seq_len = len(token)
                 mask = []

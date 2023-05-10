@@ -12,10 +12,12 @@ parser = argparse.ArgumentParser(description='Chinese Text Classification')
 parser.add_argument('--model', type=str, required=False, help='choose a model: Bert, ERNIE')
 args = parser.parse_args()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # 分别用于对标题、关键词、特征文本进行训练
 if __name__ == '__main__':
+    print(torch.cuda.is_available())
+    torch.cuda.empty_cache()
     dataset = 'IllegalWebsite/title'                  # 数据集
 
     model_name = 'bert'                         #args.model  # bert
