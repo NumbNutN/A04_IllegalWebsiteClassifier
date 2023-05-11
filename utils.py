@@ -17,8 +17,9 @@ def build_dataset(config):
                 if not lin:
                     continue
                 content, label = lin.split('\t')
-                # if label != '1' and label != '0':
-                #     continue
+                if label != '10' and label != '11':
+                    continue
+                label = str(int(label) - 10)
                 # print(content)
                 # added 2023-5-10
                 token = config.tokenizer.tokenize(content)
