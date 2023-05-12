@@ -1,1 +1,7 @@
 bert_pretrain/pytorch_model.bin
+their_bert_pretrain/
+pytorch_pretrained/__pycache__/
+models/__pycache__/
+IllegalWebsite/title/saved_dict/
+__pycache__/
+myModel/
