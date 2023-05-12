@@ -54,31 +54,31 @@ def train(model, train_dataloader, val_dataloader=None, epochs=4, evaluation=Fal
     return model
 
 # 定义训练数据和标签
-train_texts = ['第一篇文本', '第二篇文本', ...]
-train_labels = [0, 1, ...] # 标签应该是整
 
 
-def convert_to_text_label(filename:str):
-    with open(filename) as fs:
-        text = []
-        label = []
-        lines = fs.readlines()
-        for line in lines:
-            split_cnt = line.split('\t')
-            text.append(split_cnt[0])
-            label.append(int(split_cnt[1]))
-    return text,label
+import sys
+sys.path.append("../../")
+
+from tool import feature_extraction_tool as fet
+
+ori_train_texts = fet.read_csv_context(
+                                filename="/A04/bert_data/all_content_split_train.csv",
+                                row_range = range(3000000),
+                                col = 0)
+
+ori_train_labels = fet.read_csv_context(
+                                filename="/A04/bert_data/all_content_split_train.csv",
+                                row_range = range(3000000),
+                                col = 1)
 
 train_texts = []
 train_labels = []
-
-new_text,new_label = convert_to_text_label("./myBERT/train.txt")
-train_texts.extend(new_text)
-train_labels.extend(new_label)
-new_text,new_label = convert_to_text_label("./myBERT/dev.txt")
-train_texts.extend(new_text)
-train_labels.extend(new_label)
-train_labels = [int(ids)-2 for ids in train_labels]
+for idx in range(len(ori_train_labels)):
+    if(ori_train_labels[idx] != '1' and ori_train_labels[idx] != '12'):
+        train_texts.append(ori_train_texts[idx])
+        train_labels.append(ori_train_labels[idx])
+# train_labels = filter(remove_label_reward,train_labels)
+train_labels = [int(label)-2 for label in train_labels]
 
 # 定义tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
@@ -105,7 +105,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BERTBiLSTM('bert-base-chinese', 10, 768, 256).to(device)
 model = train(model, train_dataloader, epochs=4, evaluation=False)
 
-torch.save(model,"myModel/bilstm_bert.pt")
+torch.save(model,"/A04/IllegalWebsiteClassifier/myModel/bilstm_bert_split.pt")
 from sklearn.metrics import confusion_matrix, classification_report
 
 def evaluate(model, dataloader):
@@ -131,10 +131,25 @@ def evaluate(model, dataloader):
     print(confusion_matrix(y_true, y_pred))
 
 
-test_texts,test_labels = convert_to_text_label("./myBERT/test.txt")
+#读取文档
+ori_test_texts = fet.read_csv_context(
+                                filename="/A04/bert_data/all_content_split_test.csv",
+                                row_range = range(3000000),
+                                col = 0)
 
+ori_test_labels = fet.read_csv_context(
+                                filename="/A04/bert_data/all_content_split_test.csv",
+                                row_range = range(3000000),
+                                col = 1)
 
+test_texts = []
+test_labels = []
+for idx in range(len(ori_test_labels)):
+    if(ori_test_labels[idx] != '1'and ori_test_labels[idx] != '12'):
+        test_texts.append(ori_test_texts[idx])
+        test_labels.append(ori_test_labels[idx])
 
+test_labels = [int(label)-2 for label in test_labels]
 
 # 将文本转换为token和input_mask
 test_input_ids = []
@@ -146,10 +161,7 @@ for text in test_texts:
 
 test_input_ids = torch.cat(test_input_ids, dim=0)
 test_attention_masks = torch.cat(test_attention_masks, dim=0)
-
-test_labels = [int(ids)-2 for ids in test_labels]
 test_labels = torch.tensor(test_labels)
-
 
 
 # 定义测试数据集和数据加载器
