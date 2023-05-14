@@ -53,6 +53,7 @@ def train(model, train_dataloader, val_dataloader=None, epochs=4, evaluation=Fal
 
     return model
 
+
 def evaluate(model, dataloader):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()
@@ -77,6 +78,9 @@ def evaluate(model, dataloader):
 
 
 
+# 定义训练数据和标签
+
+
 import sys
 sys.path.append("../../")
 
@@ -85,93 +89,40 @@ train_texts = []
 train_labels = []
 dfl = fet.DataFeature()
 
-from matplotlib.font_manager import FontManager
-import subprocess
-
-mpl_fonts = set(f.name for f in FontManager().ttflist)
-
-print('all font list get from matplotlib.font_manager:')
-for f in sorted(mpl_fonts):
-    print('\t' + f)
-
-import pandas as pd
-
-
-# 定义训练数据和标签
-
-
 class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
 
 for class_name in class_list:
     train_texts.extend(fet.read_csv_context(
                                     filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:2000],
+                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:100],
                                     col = 0))
 
     train_labels.extend(fet.read_csv_context(
                                     filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:2000],
+                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:100],
                                     col = 1))
+    train_texts.extend(fet.read_csv_context(
+                                    filename="/A04/bert_data/all_content_split_train.csv",
+                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:100],
+                                    col = 0))
+
+    train_labels.extend(fet.read_csv_context(
+                                    filename="/A04/bert_data/all_content_split_train.csv",
+                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:100],
+                                    col = 1))
+    
 
 
 # train_labels = filter(remove_label_reward,train_labels)
 train_labels = [int(label)-2 for label in train_labels]
 
-#读取文档
-test_texts = []
-test_labels = []
-
-class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
-
-for class_name in class_list:
-    test_texts.extend(fet.read_csv_context(
-                                filename="/A04/bert_data/all_content_split_test.csv",
-                                row_range = dfl.test_split_dataFeature[class_name]['range'][0:1000],
-                                col = 0))
-
-    test_labels.extend(fet.read_csv_context(
-                                filename="/A04/bert_data/all_content_split_test.csv",
-                                row_range = dfl.test_split_dataFeature[class_name]['range'][0:1000],
-                                col = 1))
 
 
-test_labels = [int(label)-2 for label in test_labels]
-
-
-train_data = \
-{
-    "text":train_texts,
-    "label":train_labels
-}
-test_data = \
-{
-    "text":test_texts,
-    "label":test_labels
-}
-#生成行标签
-train_line_label = [str(i) for i in range(len(train_labels))]
-test_line_label = [str(i) for i in range(len(test_labels))]
-train_df = pd.DataFrame(train_data,index=train_line_label)
-test_df = pd.DataFrame(test_data,index=test_line_label)
-
-#交换部分帧
-train_sample = train_df.sample(n=200, frac=None, replace=False, weights=None,
-          random_state=1,axis=0)
-for index,row in train_sample.iterrows():
-    train_df.drop(index)
-
-test_sample = test_df.sample(n=200, frac=None, replace=False, weights=None,
-          random_state=1, axis=0)
-for index,row in test_sample.iterrows():
-    test_df.drop(index)
-
-train_df = pd.concat([train_df,test_sample])
-test_df = pd.concat([test_df,train_sample])
-
-train_texts = train_df['text'].tolist()
-train_labels = train_df['label'].tolist()
-test_texts = test_df['text'].tolist()
-test_labels = test_df['label'].tolist()
+from sklearn.model_selection import train_test_split
+# 拆分
+train_texts, test_texts,train_labels, test_labels = \
+train_test_split(train_texts,train_labels,
+                 test_size=0.2,random_state=0)
 
 # 定义tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
@@ -188,6 +139,7 @@ train_input_ids = torch.cat(train_input_ids, dim=0)
 train_attention_masks = torch.cat(train_attention_masks, dim=0)
 train_labels = torch.tensor(train_labels)
 
+
 # 定义训练数据集和数据加载器
 train_dataset = TensorDataset(train_input_ids, train_attention_masks, train_labels)
 train_sampler = RandomSampler(train_dataset)
@@ -198,7 +150,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BERTBiLSTM('bert-base-chinese', 10, 768, 256).to(device)
 model = train(model, train_dataloader, epochs=4, evaluation=False)
 
-torch.save(model,"/A04/IllegalWebsiteClassifier/myModel/bilstm_bert_split.pt")
+torch.save(model,"/A04/IllegalWebsiteClassifier/myModel/bilstm_bert_without_split_2023_5_24.pt")
 from sklearn.metrics import confusion_matrix, classification_report
 
 
@@ -243,5 +195,7 @@ test_labels = np.array(test_labels)
 y_pred = np.array(y_pred)
 from tool import evaluation_tool as et
 
-et.draw_roc("/A04/IllegalWebsiteClassifier/fig/auc.jpg",y_true,y_pred,10,class_list)
-et.draw_pr("/A04/IllegalWebsiteClassifier/fig/pr.jpg",y_true,y_pred,10,class_list)
+for i in range(len(test_labels)):
+    print(np.max(y_pred[:,i]),  test_labels[i])
+et.draw_roc("/A04/IllegalWebsiteClassifier/fig/no_split_auc.jpg",test_labels,y_pred,10,class_list)
+et.draw_pr("/A04/IllegalWebsiteClassifier/fig/no_split_pr.jpg",test_labels,y_pred,10,class_list)
