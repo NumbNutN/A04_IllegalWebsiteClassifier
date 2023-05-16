@@ -90,19 +90,63 @@ import pandas as pd
 
 # 定义训练数据和标签
 
-
-class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
-
-for class_name in class_list:
-    train_texts.extend(fet.read_csv_context(
+#要求实际1300条
+train_texts.extend(fet.read_csv_context(
                                     filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:2000],
+                                    row_range = dfl.train_split_dataFeature["婚恋交友"]["range"][0:3900],
                                     col = 0))
 
-    train_labels.extend(fet.read_csv_context(
+train_labels.extend(fet.read_csv_context(
                                     filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:2000],
+                                    row_range = dfl.train_split_dataFeature["婚恋交友"]["range"][0:3900],
                                     col = 1))
+
+limited_class_list = ["信贷理财","刷单诈骗"]
+
+#要求实际600条
+for class_name in limited_class_list:
+    train_texts.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_train.csv",
+                                        row_range = dfl.train_split_dataFeature[class_name]["range"][0:1800],
+                                        col = 0))
+
+    train_labels.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_train.csv",
+                                        row_range = dfl.train_split_dataFeature[class_name]["range"][0:1800],
+                                        col = 1))
+
+#随机抽选
+
+train_texts ,train_labels =  fet.random_pick(train_texts ,train_labels,1/3)
+
+limited_class_list = ["冒充公检法","招聘兼职","假冒身份","杀猪盘"]
+
+
+for class_name in limited_class_list:
+    train_texts.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_train.csv",
+                                        row_range = dfl.train_split_dataFeature[class_name]["range"][0:150],
+                                        col = 0))
+
+    train_labels.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_train.csv",
+                                        row_range = dfl.train_split_dataFeature[class_name]["range"][0:150],
+                                        col = 1))
+
+
+
+limited_class_list = ["博彩赌博","钓鱼网站","平台诈骗"]
+for class_name in limited_class_list:
+    train_texts.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_train.csv",
+                                        row_range = dfl.train_split_dataFeature[class_name]["range"][0:150],
+                                        col = 0))
+
+    train_labels.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_train.csv",
+                                        row_range = dfl.train_split_dataFeature[class_name]["range"][0:150],
+                                        col = 1))
+
 
 
 # train_labels = filter(remove_label_reward,train_labels)
@@ -114,20 +158,81 @@ test_labels = []
 
 class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
 
-for class_name in class_list:
+test_texts.extend(fet.read_csv_context(
+                                    filename="/A04/bert_data/all_content_split_test.csv",
+                                    row_range = dfl.test_split_dataFeature["婚恋交友"]["range"][0:2500],
+                                    col = 0))
+
+test_labels.extend(fet.read_csv_context(
+                                    filename="/A04/bert_data/all_content_split_test.csv",
+                                    row_range = dfl.test_split_dataFeature["婚恋交友"]["range"][0:2500],
+                                    col = 1))
+
+#随机抽选
+test_data = \
+{
+    "text":test_texts,
+    "label":test_labels
+}
+test_line_label = [str(i) for i in range(len(test_labels))]
+test_df = pd.DataFrame(test_data,index=test_line_label)
+#交换部分帧
+test_sample = test_df.sample(n=390, frac=None, replace=False, weights=None,
+          random_state=1,axis=0)
+test_texts = test_sample["text"].tolist()
+test_labels = test_sample["label"].tolist()
+
+limited_class_list = ["冒充公检法","招聘兼职","假冒身份","杀猪盘"]
+
+for class_name in limited_class_list:
     test_texts.extend(fet.read_csv_context(
-                                filename="/A04/bert_data/all_content_split_test.csv",
-                                row_range = dfl.test_split_dataFeature[class_name]['range'][0:1000],
-                                col = 0))
+                                        filename="/A04/bert_data/all_content_split_test.csv",
+                                        row_range = dfl.test_split_dataFeature[class_name]["range"][0:20],
+                                        col = 0))
 
     test_labels.extend(fet.read_csv_context(
-                                filename="/A04/bert_data/all_content_split_test.csv",
-                                row_range = dfl.test_split_dataFeature[class_name]['range'][0:1000],
-                                col = 1))
+                                        filename="/A04/bert_data/all_content_split_test.csv",
+                                        row_range = dfl.test_split_dataFeature[class_name]["range"][0:20],
+                                        col = 1))
+    
+limited_class_list = ["信贷理财","刷单诈骗"]
+
+for class_name in limited_class_list:
+    test_texts.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_test.csv",
+                                        row_range = dfl.test_split_dataFeature[class_name]["range"][0:300],
+                                        col = 0))
+
+    test_labels.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_test.csv",
+                                        row_range = dfl.test_split_dataFeature[class_name]["range"][0:300],
+                                        col = 1))
+
+limited_class_list = ["博彩赌博","钓鱼网站"]
+for class_name in limited_class_list:
+    test_texts.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_test.csv",
+                                        row_range = dfl.test_split_dataFeature[class_name]["range"][0:50],
+                                        col = 0))
+
+    test_labels.extend(fet.read_csv_context(
+                                        filename="/A04/bert_data/all_content_split_test.csv",
+                                        row_range = dfl.test_split_dataFeature[class_name]["range"][0:50],
+                                        col = 1))
+    
+
+test_texts.extend(fet.read_csv_context(
+                                    filename="/A04/bert_data/all_content_split_test.csv",
+                                    row_range = dfl.test_split_dataFeature["平台诈骗"]["range"][0:20],
+                                    col = 0))
+
+test_labels.extend(fet.read_csv_context(
+                                    filename="/A04/bert_data/all_content_split_test.csv",
+                                    row_range = dfl.test_split_dataFeature["平台诈骗"]["range"][0:20],
+                                    col = 1))
 
 
 test_labels = [int(label)-2 for label in test_labels]
-
 
 train_data = \
 {
@@ -146,12 +251,12 @@ train_df = pd.DataFrame(train_data,index=train_line_label)
 test_df = pd.DataFrame(test_data,index=test_line_label)
 
 #交换部分帧
-train_sample = train_df.sample(n=200, frac=None, replace=False, weights=None,
+train_sample = train_df.sample(n=300, frac=None, replace=False, weights=None,
           random_state=1,axis=0)
 for index,row in train_sample.iterrows():
     train_df.drop(index)
 
-test_sample = test_df.sample(n=200, frac=None, replace=False, weights=None,
+test_sample = test_df.sample(n=300, frac=None, replace=False, weights=None,
           random_state=1, axis=0)
 for index,row in test_sample.iterrows():
     test_df.drop(index)

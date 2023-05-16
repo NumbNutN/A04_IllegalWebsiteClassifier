@@ -56,6 +56,9 @@ print('all font list get from matplotlib.font_manager:')
 for f in sorted(mpl_fonts):
     print('\t' + f)
 
+from matplotlib import font_manager
+font = font_manager.get_font_names()
+
 import sys
 sys.path.append("../../")
 
@@ -69,12 +72,12 @@ class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" 
 for class_name in class_list:
     test_texts.extend(fet.read_csv_context(
                                     filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:100],
+                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:10],
                                     col = 0))
 
     test_labels.extend(fet.read_csv_context(
                                     filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:100],
+                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:10],
                                     col = 1))
     
 
@@ -129,5 +132,6 @@ from tool import evaluation_tool as et
 
 # for i in range(len(test_labels)):
 #     print(np.argmax(y_pred[i]),  y_true[i])
+et.draw_init()
 et.draw_roc("/A04/IllegalWebsiteClassifier/fig/no_split_auc.jpg",y_true,y_pred,10,class_list)
 et.draw_pr("/A04/IllegalWebsiteClassifier/fig/no_split_pr.jpg",y_true,y_pred,10,class_list)
