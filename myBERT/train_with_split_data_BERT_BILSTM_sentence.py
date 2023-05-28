@@ -2,9 +2,25 @@ import torch
 import torch.nn as nn
 from transformers import BertTokenizer, BertModel
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+import torch.nn.functional as F
 from sklearn.metrics import f1_score
 
 class BERTBiLSTM(nn.Module):
+    # def __init__(self, bert_path, num_labels, hidden_size, lstm_hidden_size):
+    #     super(BERTBiLSTM, self).__init__()
+    #     self.bert = BertModel.from_pretrained(bert_path)
+    #     self.lstm = nn.LSTM(self.bert.config.hidden_size, lstm_hidden_size, num_layers=1, batch_first=True, bidirectional=True)
+    #     self.dropout = nn.Dropout(0.1)
+    #     self.classifier = nn.Linear(self.bert.config.hidden_size, num_labels)
+
+    # def forward(self, input_ids, attention_mask):
+    #     outputs = self.bert(input_ids, attention_mask=attention_mask)
+    #     sequence_output = outputs.last_hidden_state
+
+    #     sequence_output = self.dropout(sequence_output)
+    #     logits = self.classifier(sequence_output)
+    #     return logits
+
     def __init__(self, bert_path, num_labels, hidden_size, lstm_hidden_size):
         super(BERTBiLSTM, self).__init__()
         self.bert = BertModel.from_pretrained(bert_path)
@@ -20,6 +36,14 @@ class BERTBiLSTM(nn.Module):
         h_n = self.dropout(h_n)
         logits = self.classifier(h_n)
         return logits
+
+        #消除negative
+        # logits = logits.clamp(min=0)
+        # print(logits[0])
+        # probs = F.softmax(logits, dim=1)
+        # print(probs[0])
+        # probs = torch.nn.functional.normalize(probs, p=1, dim=1)  # 将每个样本的预测值除以它们的总和
+        
 
 def train(model, train_dataloader, val_dataloader=None, epochs=4, evaluation=False):
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
@@ -69,7 +93,7 @@ def evaluate(model, dataloader):
             y_true.extend(labels.tolist())
             y_pred.extend(predicted.tolist())
 
-    target_names = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
+    target_names = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" , "平台诈骗","招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
     print('Classification Report:')
     print(classification_report(y_true, y_pred, target_names=target_names))
     print('Confusion Matrix:')
@@ -89,43 +113,33 @@ import pandas as pd
 
 
 # 定义训练数据和标签
-
-
 class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
 
-for class_name in class_list:
-    train_texts.extend(fet.read_csv_context(
-                                    filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:2000],
+train_texts.extend(fet.read_csv_context(
+                                    filename="/A04/data/all_content_strenghen_5_18_2_sentence_less_hunlian_train.csv",
+                                    row_range = range(0,15000),
                                     col = 0))
 
-    train_labels.extend(fet.read_csv_context(
-                                    filename="/A04/bert_data/all_content_split_train.csv",
-                                    row_range = dfl.train_split_dataFeature[class_name]["range"][0:2000],
+train_labels.extend(fet.read_csv_context(
+                                    filename="/A04/data/all_content_strenghen_5_18_2_sentence_less_hunlian_train.csv",
+                                    row_range = range(0,15000),
                                     col = 1))
 
-
-# train_labels = filter(remove_label_reward,train_labels)
 train_labels = [int(label)-2 for label in train_labels]
 
 #读取文档
 test_texts = []
 test_labels = []
 
-class_list = ["婚恋交友", "假冒身份" ,"钓鱼网站", "冒充公检法" ,"平台诈骗" ,"招聘兼职" ,"杀猪盘" ,"博彩赌博" ,"信贷理财" ,"刷单诈骗" ]
+test_texts.extend(fet.read_csv_context(
+                                    filename="/A04/data/all_content_strenghen_5_18_2_sentence_less_hunlian_test.csv",
+                                    row_range = range(0,6000),
+                                    col = 0))
 
-for class_name in class_list:
-    test_texts.extend(fet.read_csv_context(
-                                filename="/A04/bert_data/all_content_split_test.csv",
-                                row_range = dfl.test_split_dataFeature[class_name]['range'][0:1000],
-                                col = 0))
-
-    test_labels.extend(fet.read_csv_context(
-                                filename="/A04/bert_data/all_content_split_test.csv",
-                                row_range = dfl.test_split_dataFeature[class_name]['range'][0:1000],
-                                col = 1))
-
-
+test_labels.extend(fet.read_csv_context(
+                                    filename="/A04/data/all_content_strenghen_5_18_2_sentence_less_hunlian_test.csv",
+                                    row_range = range(0,6000),
+                                    col = 1))
 test_labels = [int(label)-2 for label in test_labels]
 
 
@@ -145,19 +159,19 @@ test_line_label = [str(i) for i in range(len(test_labels))]
 train_df = pd.DataFrame(train_data,index=train_line_label)
 test_df = pd.DataFrame(test_data,index=test_line_label)
 
-#交换部分帧
-train_sample = train_df.sample(n=200, frac=None, replace=False, weights=None,
-          random_state=1,axis=0)
-for index,row in train_sample.iterrows():
-    train_df.drop(index)
+# #交换部分帧
+# train_sample = train_df.sample(n=100, frac=None, replace=False, weights=None,
+#           random_state=1,axis=0)
+# for index,row in train_sample.iterrows():
+#     train_df.drop(index)
 
-test_sample = test_df.sample(n=200, frac=None, replace=False, weights=None,
-          random_state=1, axis=0)
-for index,row in test_sample.iterrows():
-    test_df.drop(index)
+# test_sample = test_df.sample(n=100, frac=None, replace=False, weights=None,
+#           random_state=1, axis=0)
+# for index,row in test_sample.iterrows():
+#     test_df.drop(index)
 
-train_df = pd.concat([train_df,test_sample])
-test_df = pd.concat([test_df,train_sample])
+# train_df = pd.concat([train_df,test_sample])
+# test_df = pd.concat([test_df,train_sample])
 
 train_texts = train_df['text'].tolist()
 train_labels = train_df['label'].tolist()
@@ -184,14 +198,14 @@ train_dataset = TensorDataset(train_input_ids, train_attention_masks, train_labe
 train_sampler = RandomSampler(train_dataset)
 train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=32)
 
+fet.simple_calculate_class(train_labels,class_list)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BERTBiLSTM('bert-base-chinese', 10, 768, 256).to(device)
 model = train(model, train_dataloader, epochs=4, evaluation=False)
 
-torch.save(model,"/A04/IllegalWebsiteClassifier/myModel/bilstm_bert_split.pt")
+#torch.save(model,"/A04/IllegalWebsiteClassifier/myModel/bilstm_bert_split_5_17.pt")
 from sklearn.metrics import confusion_matrix, classification_report
-
 
 
 # 将文本转换为token和input_mask
@@ -231,9 +245,13 @@ with torch.no_grad():
 
 import numpy as np
 test_labels = np.array(test_labels)
+y_true = np.array(y_true)
 y_pred = np.array(y_pred)
 from tool import evaluation_tool as et
 
+
 et.draw_init()
-et.draw_roc("/A04/IllegalWebsiteClassifier/fig/auc.jpg",y_true,y_pred,10,class_list)
-et.draw_pr("/A04/IllegalWebsiteClassifier/fig/pr.jpg",y_true,y_pred,10,class_list)
+et.draw_roc("/A04/IllegalWebsiteClassifier/fig/auc_sentence.jpg",y_true,y_pred,10,class_list)
+et.draw_pr("/A04/IllegalWebsiteClassifier/fig/pr_sentence.jpg",y_true,y_pred,10,class_list)
+et.calculate_score(test_labels,y_pred,10,class_list)
+et.plot_confusion_matrix(confusion_matrix(y_true, y_pred),"/A04/IllegalWebsiteClassifier/fig/con_sentence.jpg")
